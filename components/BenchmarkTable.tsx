@@ -1,65 +1,110 @@
 'use client';
 
-import { useState } from 'react';
-import { BenchmarkResult, FilterOptions } from '@/types/benchmark';
-import { 
-  formatHashrate, 
-  formatPower, 
-  formatEfficiency, 
-  formatTemperature, 
-  formatUptime, 
-  formatProfitability 
-} from '@/lib/utils';
-import { Search, Filter, Download, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Download, RefreshCw } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
-interface BenchmarkTableProps {
-  results: BenchmarkResult[];
-  onRefresh?: () => void;
+interface BenchmarkResult {
+  id: number;
+  device_type: string;
+  device_name: string;
+  avg_temp: number | null;
+  avg_hashrate: number;
+  max_hashrate: number;
+  duration_seconds: number;
+  algorithm: string;
+  coin_name: string;
+  created_at: string;
+  device_uid: string;
 }
 
-export default function BenchmarkTable({ results, onRefresh }: BenchmarkTableProps) {
+interface FilterOptions {
+  algorithm?: string;
+  device_name?: string;
+  device_type?: string;
+}
+
+export default function BenchmarkTable() {
+  const [results, setResults] = useState<BenchmarkResult[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterOptions>({});
-  const [sortField, setSortField] = useState<keyof BenchmarkResult>('timestamp');
+  const [sortField, setSortField] = useState<keyof BenchmarkResult>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [searchTerm, setSearchTerm] = useState('');
 
+  const fetchResults = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('benchmarks')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      setLoading(false);
+      return;
+    }
+
+    // --- Оновлення: залишаємо лише останній запис для кожного device_uid ---
+    const latestMap = new Map<string, BenchmarkResult>();
+    data.forEach(item => {
+      const uid = item.device_uid;
+      if (!latestMap.has(uid) || new Date(item.created_at) > new Date(latestMap.get(uid)!.created_at)) {
+        latestMap.set(uid, {
+          id: item.id,
+          device_type: item.device_type,
+          device_name: item.device_name,
+          avg_temp: item.avg_temp ? Number(item.avg_temp) : null,
+          avg_hashrate: Number(item.avg_hashrate),
+          max_hashrate: Number(item.max_hashrate),
+          duration_seconds: item.duration_seconds,
+          algorithm: item.algorithm,
+          coin_name: item.coin_name,
+          created_at: item.created_at,
+          device_uid: item.device_uid,
+        });
+      }
+    });
+
+    setResults(Array.from(latestMap.values()));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchResults();
+  }, []);
+
   const filteredResults = results
-    .filter(result => {
-      if (filters.algorithm && result.algorithm !== filters.algorithm) return false;
-      if (filters.gpuModel && result.gpuModel !== filters.gpuModel) return false;
-      if (filters.miner && result.miner !== filters.miner) return false;
+    .filter(r => {
+      if (filters.algorithm && r.algorithm !== filters.algorithm) return false;
+      if (filters.device_name && r.device_name !== filters.device_name) return false;
+      if (filters.device_type && r.device_type !== filters.device_type) return false;
       if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
+        const term = searchTerm.toLowerCase();
         return (
-          result.algorithm.toLowerCase().includes(searchLower) ||
-          result.gpuModel.toLowerCase().includes(searchLower) ||
-          result.miner.toLowerCase().includes(searchLower) ||
-          result.pool.toLowerCase().includes(searchLower)
+          r.algorithm.toLowerCase().includes(term) ||
+          r.device_name.toLowerCase().includes(term) ||
+          r.device_type.toLowerCase().includes(term) ||
+          r.coin_name.toLowerCase().includes(term)
         );
       }
       return true;
     })
     .sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-      
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
       }
-      
       return 0;
     });
 
   const handleSort = (field: keyof BenchmarkResult) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
+    if (sortField === field) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    else {
       setSortField(field);
       setSortDirection('desc');
     }
@@ -71,31 +116,22 @@ export default function BenchmarkTable({ results, onRefresh }: BenchmarkTablePro
 
   const exportToCSV = () => {
     const headers = [
-      'Timestamp', 'Algorithm', 'Hashrate (MH/s)', 'Power (W)', 'Efficiency (H/W)',
-      'Temperature (°C)', 'GPU Model', 'Driver', 'OS', 'Miner', 'Pool', 'Difficulty',
-      'Shares Accepted', 'Shares Rejected', 'Shares Stale', 'Uptime (h)', 'Profitability ($/day)'
+      'Created At', 'Algorithm', 'Device Name', 'Device Type', 'Avg Temp', 'Avg Hashrate', 'Max Hashrate', 'Duration (s)', 'Coin Name', 'Device UID'
     ];
-    
+
     const csvContent = [
       headers.join(','),
-      ...filteredResults.map(result => [
-        result.timestamp,
-        result.algorithm,
-        result.hashrate.toFixed(2),
-        result.powerConsumption.toFixed(0),
-        result.efficiency.toFixed(2),
-        result.temperature.toFixed(1),
-        result.gpuModel,
-        result.driverVersion,
-        result.os,
-        result.miner,
-        result.pool,
-        result.difficulty.toFixed(0),
-        result.shares.accepted,
-        result.shares.rejected,
-        result.shares.stale,
-        (result.uptime / 3600).toFixed(2),
-        result.profitability.toFixed(4)
+      ...filteredResults.map(r => [
+        r.created_at,
+        r.algorithm,
+        r.device_name,
+        r.device_type,
+        r.avg_temp !== null ? r.avg_temp.toFixed(1) : 'N/A',
+        r.avg_hashrate.toFixed(2),
+        r.max_hashrate.toFixed(2),
+        r.duration_seconds,
+        r.coin_name,
+        r.device_uid
       ].join(','))
     ].join('\n');
 
@@ -103,7 +139,7 @@ export default function BenchmarkTable({ results, onRefresh }: BenchmarkTablePro
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `minebench-results-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `benchmarks-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -111,75 +147,45 @@ export default function BenchmarkTable({ results, onRefresh }: BenchmarkTablePro
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-mining-600 to-mining-700 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-white">Benchmark Results</h2>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={onRefresh}
-              className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Refresh</span>
-            </button>
-            <button
-              onClick={exportToCSV}
-              className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              <span>Export CSV</span>
-            </button>
-          </div>
+      <div className="bg-gradient-to-r from-mining-600 to-mining-700 px-6 py-4 flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-white">Benchmark Results</h2>
+        <div className="flex items-center space-x-4">
+          <button onClick={fetchResults} className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors">
+            <RefreshCw className="w-4 h-4" /><span>Refresh</span>
+          </button>
+          <button onClick={exportToCSV} className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors">
+            <Download className="w-4 h-4" /><span>Export CSV</span>
+          </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="p-6 border-b bg-gray-50">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mining-500 focus:border-transparent"
-            />
-          </div>
-          
-          <select
-            value={filters.algorithm || ''}
-            onChange={(e) => setFilters({ ...filters, algorithm: e.target.value || undefined })}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mining-500 focus:border-transparent"
-          >
-            <option value="">All Algorithms</option>
-            {getUniqueValues('algorithm').map(algo => (
-              <option key={algo} value={algo}>{algo}</option>
-            ))}
-          </select>
-
-          <select
-            value={filters.gpuModel || ''}
-            onChange={(e) => setFilters({ ...filters, gpuModel: e.target.value || undefined })}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mining-500 focus:border-transparent"
-          >
-            <option value="">All GPU Models</option>
-            {getUniqueValues('gpuModel').map(gpu => (
-              <option key={gpu} value={gpu}>{gpu}</option>
-            ))}
-          </select>
-
-          <select
-            value={filters.miner || ''}
-            onChange={(e) => setFilters({ ...filters, miner: e.target.value || undefined })}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mining-500 focus:border-transparent"
-          >
-            <option value="">All Miners</option>
-            {getUniqueValues('miner').map(miner => (
-              <option key={miner} value={miner}>{miner}</option>
-            ))}
-          </select>
+      <div className="p-6 border-b bg-gray-50 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mining-500 focus:border-transparent"
+          />
         </div>
+
+        <select value={filters.algorithm || ''} onChange={e => setFilters({...filters, algorithm: e.target.value || undefined})} className="px-4 py-2 border rounded-lg">
+          <option value="">All Algorithms</option>
+          {getUniqueValues('algorithm').map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+
+        <select value={filters.device_name || ''} onChange={e => setFilters({...filters, device_name: e.target.value || undefined})} className="px-4 py-2 border rounded-lg">
+          <option value="">All Devices</option>
+          {getUniqueValues('device_name').map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+
+        <select value={filters.device_type || ''} onChange={e => setFilters({...filters, device_type: e.target.value || undefined})} className="px-4 py-2 border rounded-lg">
+          <option value="">All Types</option>
+          {getUniqueValues('device_type').map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
       </div>
 
       {/* Table */}
@@ -187,100 +193,26 @@ export default function BenchmarkTable({ results, onRefresh }: BenchmarkTablePro
         <table className="w-full">
           <thead className="bg-gray-100">
             <tr>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                onClick={() => handleSort('timestamp')}
-              >
-                Timestamp {sortField === 'timestamp' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                onClick={() => handleSort('algorithm')}
-              >
-                Algorithm {sortField === 'algorithm' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                onClick={() => handleSort('hashrate')}
-              >
-                Hashrate {sortField === 'hashrate' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                onClick={() => handleSort('powerConsumption')}
-              >
-                Power {sortField === 'powerConsumption' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                onClick={() => handleSort('efficiency')}
-              >
-                Efficiency {sortField === 'efficiency' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                onClick={() => handleSort('temperature')}
-              >
-                Temp {sortField === 'temperature' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                onClick={() => handleSort('gpuModel')}
-              >
-                GPU Model {sortField === 'gpuModel' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                onClick={() => handleSort('miner')}
-              >
-                Miner {sortField === 'miner' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                onClick={() => handleSort('profitability')}
-              >
-                Profit {sortField === 'profitability' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
+              {['created_at','algorithm','device_name','device_type','avg_temp','avg_hashrate','max_hashrate','duration_seconds','coin_name','device_uid'].map(field => (
+                <th key={field} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort(field as keyof BenchmarkResult)}>
+                  {field.replace(/_/g,' ').toUpperCase()} {sortField===field && (sortDirection==='asc'?' ↑':' ↓')}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredResults.map((result) => (
-              <tr key={result.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {new Date(result.timestamp).toLocaleString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {result.algorithm}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {formatHashrate(result.hashrate)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatPower(result.powerConsumption)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatEfficiency(result.efficiency)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    result.temperature > 75 ? 'bg-red-100 text-red-800' : 
-                    result.temperature > 70 ? 'bg-yellow-100 text-yellow-800' : 
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {formatTemperature(result.temperature)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {result.gpuModel}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {result.miner}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                  {formatProfitability(result.profitability)}
-                </td>
+            {filteredResults.map(r => (
+              <tr key={r.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4">{new Date(r.created_at).toLocaleString()}</td>
+                <td className="px-6 py-4"><span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>{r.algorithm}</span></td>
+                <td className="px-6 py-4">{r.device_name}</td>
+                <td className="px-6 py-4">{r.device_type}</td>
+                <td className="px-6 py-4">{r.avg_temp !== null ? r.avg_temp.toFixed(1) : 'N/A'}</td>
+                <td className="px-6 py-4">{r.avg_hashrate.toFixed(2)}</td>
+                <td className="px-6 py-4">{r.max_hashrate.toFixed(2)}</td>
+                <td className="px-6 py-4">{r.duration_seconds}</td>
+                <td className="px-6 py-4">{r.coin_name}</td>
+                <td className="px-6 py-4">{r.device_uid}</td>
               </tr>
             ))}
           </tbody>
@@ -288,15 +220,9 @@ export default function BenchmarkTable({ results, onRefresh }: BenchmarkTablePro
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-50 px-6 py-3 border-t">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-700">
-            Showing {filteredResults.length} of {results.length} results
-          </p>
-          <div className="text-sm text-gray-500">
-            Last updated: {new Date().toLocaleString()}
-          </div>
-        </div>
+      <div className="bg-gray-50 px-6 py-3 border-t flex justify-between text-sm text-gray-700">
+        <span>Showing {filteredResults.length} of {results.length} results</span>
+        <span>Last updated: {new Date().toLocaleString()}</span>
       </div>
     </div>
   );
