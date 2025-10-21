@@ -2,7 +2,7 @@ version: "2.0"
 
 services:
   minebench-ui:
-    image: minebench-ui:latest
+    image: ghcr.io/YOUR_USERNAME/minebench-ui:latest
     expose:
       - port: 3000
         as: 80

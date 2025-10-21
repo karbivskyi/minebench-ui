@@ -20,6 +20,27 @@ A comprehensive Next.js dashboard for mining benchmark results with performance 
 - **Icons**: Lucide React
 - **Deployment**: Docker + Akash Network
 
+## 🚀 Quick Start
+
+### For GitHub + Akash Deployment (Recommended)
+
+1. **Fork this repository**
+2. **Update deploy.yml** with your GitHub username
+3. **Push to GitHub** - Actions will build automatically
+4. **Make package public** in GitHub Packages
+5. **Run deployment script:**
+   ```bash
+   ./deploy-to-akash.sh
+   ```
+
+### For Local Development
+
+```bash
+npm install
+npm run dev
+# Open http://localhost:3000
+```
+
 ## 📦 Installation
 
 ### Prerequisites
@@ -76,38 +97,67 @@ docker run -p 3000:3000 minebench-ui
 docker-compose up -d
 ```
 
-## 🌐 Akash Network Deployment
+## 🌐 GitHub Container Registry & Akash Deployment
 
-### Prerequisites for Akash
+### Prerequisites
 
-1. Install Akash CLI
-2. Create Akash account and fund it
-3. Configure Akash provider
+1. **GitHub Account** with repository
+2. **Akash CLI** installed
+3. **AKT tokens** for deployment costs
 
-### Deploy to Akash
+### Option 1: Automated GitHub Actions (Recommended)
 
-1. **Build and push image to registry**
+1. **Push to GitHub**
    ```bash
-   # Build the image
-   docker build -t minebench-ui .
-   
-   # Tag for your registry
-   docker tag minebench-ui your-registry/minebench-ui:latest
-   
-   # Push to registry
-   docker push your-registry/minebench-ui:latest
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
    ```
 
-2. **Update deploy.yml with your image**
+2. **GitHub Actions will automatically:**
+   - Build Docker image
+   - Push to GitHub Container Registry
+   - Generate Akash deployment file
+
+3. **Make image public:**
+   - Go to your GitHub repository → Packages
+   - Find `minebench-ui` package
+   - Make it public in package settings
+
+4. **Deploy to Akash:**
+   ```bash
+   # Use automated script
+   ./deploy-to-akash.sh
+   
+   # Or Windows PowerShell
+   .\deploy-to-akash.ps1
+   ```
+
+### Option 2: Manual Build and Push
+
+1. **Create GitHub Personal Access Token**
+   - Go to GitHub Settings → Developer settings → Personal access tokens
+   - Create token with `write:packages` scope
+
+2. **Build and push manually:**
+   ```bash
+   # Linux/macOS
+   ./build-and-push.sh
+   
+   # Windows PowerShell
+   .\build-and-push.ps1
+   ```
+
+3. **Update deploy.yml:**
    ```yaml
    services:
      minebench-ui:
-       image: your-registry/minebench-ui:latest
+       image: ghcr.io/YOUR_USERNAME/minebench-ui:latest
    ```
 
-3. **Deploy using Akash CLI**
+4. **Deploy to Akash:**
    ```bash
-   akash tx deployment create deploy.yml --from your-key
+   akash tx deployment create deploy.yml --from your-key --fees 5000uakt
    ```
 
 ### Akash Configuration
