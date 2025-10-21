@@ -1,25 +1,12 @@
-// export interface BenchmarkResult {
-//   id: string;
-//   timestamp: string;
-//   algorithm: string;
-//   hashrate: number;
-//   powerConsumption: number;
-//   efficiency: number;
-//   temperature: number;
-//   gpuModel: string;
-//   driverVersion: string;
-//   os: string;
-//   miner: string;
-//   pool: string;
-//   difficulty: number;
-//   shares: {
-//     accepted: number;
-//     rejected: number;
-//     stale: number;
-//   };
-//   uptime: number;
-//   profitability: number;
-// }
+export interface Test {
+  id: number;                // або string, якщо Supabase генерує uuid
+  algorithm: string;
+  device_name: string;
+  device_type: string;
+  avg_hashrate: number;      // в H/s
+  avg_temp: number | null;   // °C
+  created_at: string;       // дата у ISO форматі
+}
 export interface BenchmarkResult {
   id: number;                // або string, якщо Supabase генерує uuid
   timestamp: string;         // дата у ISO форматі

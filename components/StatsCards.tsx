@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { BenchmarkSummary } from '@/types/benchmark';
+import { BenchmarkSummary, Test } from '@/types/benchmark';
 import { formatHashrate, formatEfficiency } from '@/lib/utils';
 import { TrendingUp, Cpu, Zap, Award, Clock, DollarSign } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
@@ -123,7 +123,7 @@ export default function StatsCards({ summary }: StatsCardsProps) {
 }
 
 export function RecentTests() {
-  const [tests, setTests] = useState<BenchmarkTest[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -162,10 +162,8 @@ export function RecentTests() {
           device_name: item.device_name,
           device_type: item.device_type,
           avg_hashrate: Number(item.avg_hashrate),
-          efficiency: item.efficiency ? Number(item.efficiency) : undefined,
-          avg_temp: item.avg_temp ? Number(item.avg_temp) : undefined,
+          avg_temp: item.avg_temp ? Number(item.avg_temp) : null,
           created_at: item.created_at,
-          gpu_model: item.gpu_model || item.device_name
         }))
       );
 
@@ -196,17 +194,17 @@ export function RecentTests() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-900">{test.algorithm}</p>
-                <p className="text-sm text-gray-500">{test.gpu_model}</p>
+                <p className="text-sm text-gray-500">{test.device_name}</p>
                 {test.avg_temp !== undefined ? (
-                  <p className="text-sm text-gray-400">Temp: {test.avg_temp.toFixed(1)}°C</p>
+                  <p className="text-sm text-gray-400">Temp: {test.avg_temp?.toFixed(1) ? `${test.avg_temp.toFixed(1)}°C` : 'N/A'}</p>
                 ) : (
                   <p className="text-sm text-gray-400">Temp: –</p>
                 )}
-                {test.efficiency !== undefined ? (
+                {/* {test.efficiency !== undefined ? (
                   <p className="text-sm text-gray-400">Efficiency: {test.efficiency.toFixed(2)}</p>
                 ) : (
                   <p className="text-sm text-gray-400">Efficiency: –</p>
-                )}
+                )} */}
               </div>
             </div>
             <div className="text-right">
