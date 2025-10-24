@@ -1,0 +1,3 @@
+minebench.cloud, www.minebench.cloud {
+    reverse_proxy localhost:3000
+}

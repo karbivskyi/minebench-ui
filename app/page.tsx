@@ -6,36 +6,68 @@ import { generateMockData, calculateSummary } from '@/lib/utils';
 import BenchmarkTable from '@/components/BenchmarkTable';
 import StatsCards, { RecentTests } from '@/components/StatsCards';
 import { Activity, BarChart3, Settings, RefreshCw } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import Image from 'next/image';
+import Logo from '@/public/img/minebench-logo.png'; // або відносний шлях
+import discord_icon from '@/public/img/discord-icon.svg';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+
 
 export default function Home() {
   const [results, setResults] = useState<BenchmarkResult[]>([]);
   const [summary, setSummary] = useState<BenchmarkSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [tests, setTests] = useState<BenchmarkResult[]>([]);
+  const year = new Date().getFullYear();
 
-  const loadData = async () => {
+  const loadTests = async () => {
     setLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockData = generateMockData();
-      setResults(mockData);
-      setSummary(calculateSummary(mockData));
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Failed to load benchmark data:', error);
+      const { data, error } = await supabase
+        .from('benchmarks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Фільтруємо по унікальному device_uid, беремо останні
+      const latestMap = new Map<string, typeof data[0]>();
+      data.forEach(item => {
+        if (!latestMap.has(item.device_uid) || new Date(item.created_at) > new Date(latestMap.get(item.device_uid)!.created_at)) {
+          latestMap.set(item.device_uid, item);
+        }
+      });
+
+      const uniqueData = Array.from(latestMap.values());
+      setTests(uniqueData.map(item => ({
+        id: item.id,
+        algorithm: item.algorithm,
+        device_name: item.device_name,
+        device_type: item.device_type,
+        avg_hashrate: Number(item.avg_hashrate),
+        efficiency: Number(item.efficiency),
+        created_at: item.created_at,
+        gpu_model: item.gpu_model || item.device_name,
+      })));
+
+      // Можеш оновити summary якщо потрібно
+      setSummary(calculateSummary(uniqueData));
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+
   useEffect(() => {
-    loadData();
+    loadTests();
   }, []);
 
   const handleRefresh = () => {
-    loadData();
+    loadTests();
   };
 
   if (loading && results.length === 0) {
@@ -51,33 +83,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Activity className="w-8 h-8 text-mining-600" />
-                <h1 className="text-2xl font-bold text-gray-900">Minebench</h1>
-              </div>
-              <span className="text-sm text-gray-500">Mining Benchmark Dashboard</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
-                Last updated: {lastUpdated.toLocaleString()}
-              </div>
-              <button
-                onClick={handleRefresh}
-                disabled={loading}
-                className="flex items-center space-x-2 bg-mining-600 hover:bg-mining-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -94,7 +100,7 @@ export default function Home() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Recent Tests */}
-            {summary && <RecentTests tests={summary.recentTests} />}
+            <RecentTests tests={tests} />
 
             {/* Performance Chart Placeholder */}
             {/* <div className="bg-white rounded-lg shadow-lg p-6">
@@ -120,7 +126,7 @@ export default function Home() {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Version:</span>
-                  <span className="text-sm font-medium">1.0.0</span>
+                  <span className="text-sm font-medium">0.1.2</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Environment:</span>
@@ -140,19 +146,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              © 2024 Minebench. Mining benchmark dashboard for performance analysis.
-            </div>
-            <div className="text-sm text-gray-500">
-              Ready for Akash deployment
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

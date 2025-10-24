@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Download, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { BenchmarkTableProps } from '@/types/benchmark';
 
 interface BenchmarkResult {
   id: number;
@@ -24,8 +25,8 @@ interface FilterOptions {
   device_type?: string;
 }
 
-export default function BenchmarkTable() {
-  const [results, setResults] = useState<BenchmarkResult[]>([]);
+export default function BenchmarkTable({ results }: BenchmarkTableProps) {
+   const [localResults, setLocalResults] = useState<BenchmarkResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterOptions>({});
   const [sortField, setSortField] = useState<keyof BenchmarkResult>('created_at');
@@ -66,7 +67,7 @@ export default function BenchmarkTable() {
       }
     });
 
-    setResults(Array.from(latestMap.values()));
+    setLocalResults(Array.from(latestMap.values()));
     setLoading(false);
   };
 
@@ -74,7 +75,7 @@ export default function BenchmarkTable() {
     fetchResults();
   }, []);
 
-  const filteredResults = results
+  const filteredResults = localResults
     .filter(r => {
       if (filters.algorithm && r.algorithm !== filters.algorithm) return false;
       if (filters.device_name && r.device_name !== filters.device_name) return false;
@@ -82,10 +83,10 @@ export default function BenchmarkTable() {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         return (
-          r.algorithm.toLowerCase().includes(term) ||
-          r.device_name.toLowerCase().includes(term) ||
-          r.device_type.toLowerCase().includes(term) ||
-          r.coin_name.toLowerCase().includes(term)
+          (r.algorithm ?? '').toLowerCase().includes(term) ||
+          (r.device_name ?? '').toLowerCase().includes(term) ||
+          (r.device_type ?? '').toLowerCase().includes(term) ||
+          (r.coin_name ?? '').toLowerCase().includes(term)
         );
       }
       return true;
@@ -126,9 +127,9 @@ export default function BenchmarkTable() {
         r.algorithm,
         r.device_name,
         r.device_type,
-        r.avg_temp !== null ? r.avg_temp.toFixed(1) : 'N/A',
-        r.avg_hashrate.toFixed(2),
-        r.max_hashrate.toFixed(2),
+        r.avg_temp != null ? r.avg_temp.toFixed(1) : 'N/A',
+        r.avg_hashrate != null ? r.avg_hashrate.toFixed(2) : 'N/A',
+        r.max_hashrate != null ? r.max_hashrate.toFixed(2) : 'N/A',
         r.duration_seconds,
         r.coin_name,
         r.device_uid
@@ -153,9 +154,9 @@ export default function BenchmarkTable() {
           <button onClick={fetchResults} className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors">
             <RefreshCw className="w-4 h-4" /><span>Refresh</span>
           </button>
-          <button onClick={exportToCSV} className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors">
+          {/* <button onClick={exportToCSV} className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors">
             <Download className="w-4 h-4" /><span>Export CSV</span>
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -172,17 +173,17 @@ export default function BenchmarkTable() {
           />
         </div>
 
-        <select value={filters.algorithm || ''} onChange={e => setFilters({...filters, algorithm: e.target.value || undefined})} className="px-4 py-2 border rounded-lg">
+        <select value={filters.algorithm || ''} onChange={e => setFilters({ ...filters, algorithm: e.target.value || undefined })} className="px-4 py-2 border rounded-lg">
           <option value="">All Algorithms</option>
           {getUniqueValues('algorithm').map(a => <option key={a} value={a}>{a}</option>)}
         </select>
 
-        <select value={filters.device_name || ''} onChange={e => setFilters({...filters, device_name: e.target.value || undefined})} className="px-4 py-2 border rounded-lg">
+        <select value={filters.device_name || ''} onChange={e => setFilters({ ...filters, device_name: e.target.value || undefined })} className="px-4 py-2 border rounded-lg">
           <option value="">All Devices</option>
           {getUniqueValues('device_name').map(d => <option key={d} value={d}>{d}</option>)}
         </select>
 
-        <select value={filters.device_type || ''} onChange={e => setFilters({...filters, device_type: e.target.value || undefined})} className="px-4 py-2 border rounded-lg">
+        <select value={filters.device_type || ''} onChange={e => setFilters({ ...filters, device_type: e.target.value || undefined })} className="px-4 py-2 border rounded-lg">
           <option value="">All Types</option>
           {getUniqueValues('device_type').map(d => <option key={d} value={d}>{d}</option>)}
         </select>
@@ -193,9 +194,9 @@ export default function BenchmarkTable() {
         <table className="w-full">
           <thead className="bg-gray-100">
             <tr>
-              {['created_at','algorithm','device_name','device_type','avg_temp','avg_hashrate','max_hashrate','duration_seconds','coin_name','device_uid'].map(field => (
+              {['created_at', 'algorithm', 'device_name', 'device_type', 'avg_temp', 'avg_hashrate', 'max_hashrate', 'duration_seconds', 'coin_name', 'device_uid'].map(field => (
                 <th key={field} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort(field as keyof BenchmarkResult)}>
-                  {field.replace(/_/g,' ').toUpperCase()} {sortField===field && (sortDirection==='asc'?' ↑':' ↓')}
+                  {field.replace(/_/g, ' ').toUpperCase()} {sortField === field && (sortDirection === 'asc' ? ' ↑' : ' ↓')}
                 </th>
               ))}
             </tr>
@@ -203,13 +204,22 @@ export default function BenchmarkTable() {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredResults.map(r => (
               <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4">{new Date(r.created_at).toLocaleString()}</td>
+                <td className="px-6 py-4">
+                  {r.created_at ? new Date(r.created_at).toLocaleString() : 'N/A'}
+                </td>
+
                 <td className="px-6 py-4"><span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>{r.algorithm}</span></td>
                 <td className="px-6 py-4">{r.device_name}</td>
                 <td className="px-6 py-4">{r.device_type}</td>
-                <td className="px-6 py-4">{r.avg_temp !== null ? r.avg_temp.toFixed(1) : 'N/A'}</td>
-                <td className="px-6 py-4">{r.avg_hashrate.toFixed(2)}</td>
-                <td className="px-6 py-4">{r.max_hashrate.toFixed(2)}</td>
+                <td className="px-6 py-4">
+                  {r.avg_temp != null ? r.avg_temp.toFixed(1) : 'N/A'}
+                </td>
+                <td className="px-6 py-4">
+                  {r.avg_hashrate != null ? r.avg_hashrate.toFixed(2) : 'N/A'}
+                </td>
+                <td className="px-6 py-4">
+                  {r.max_hashrate != null ? r.max_hashrate.toFixed(2) : 'N/A'}
+                </td>
                 <td className="px-6 py-4">{r.duration_seconds}</td>
                 <td className="px-6 py-4">{r.coin_name}</td>
                 <td className="px-6 py-4">{r.device_uid}</td>
@@ -221,7 +231,7 @@ export default function BenchmarkTable() {
 
       {/* Footer */}
       <div className="bg-gray-50 px-6 py-3 border-t flex justify-between text-sm text-gray-700">
-        <span>Showing {filteredResults.length} of {results.length} results</span>
+        <span>Showing {filteredResults.length} of {localResults.length} results</span>
         <span>Last updated: {new Date().toLocaleString()}</span>
       </div>
     </div>

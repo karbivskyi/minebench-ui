@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { BenchmarkSummary, Test } from '@/types/benchmark';
+import { BenchmarkSummary, Test, BenchmarkResult } from '@/types/benchmark';
 import { formatHashrate, formatEfficiency } from '@/lib/utils';
 import { TrendingUp, Cpu, Zap, Award, Clock, DollarSign } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
@@ -20,7 +20,7 @@ interface BenchmarkTest {
 }
 
 export default function StatsCards({ summary }: StatsCardsProps) {
-  const [tests, setTests] = useState<BenchmarkTest[]>([]);
+  const [localTests, setLocalTests] = useState<BenchmarkTest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,8 +36,15 @@ export default function StatsCards({ summary }: StatsCardsProps) {
         setLoading(false);
         return;
       }
-
-      setTests(data.map(item => ({
+      // --- Фільтруємо по унікальному device_uid ---
+      const latestMap = new Map<string, typeof data[0]>();
+      data.forEach(item => {
+        if (!latestMap.has(item.device_uid) || new Date(item.created_at) > new Date(latestMap.get(item.device_uid)!.created_at)) {
+          latestMap.set(item.device_uid, item);
+        }
+      });
+      const uniqueData = Array.from(latestMap.values());
+      setLocalTests(uniqueData.map(item => ({
         id: item.id,
         algorithm: item.algorithm,
         device_name: item.device_name,
@@ -53,14 +60,14 @@ export default function StatsCards({ summary }: StatsCardsProps) {
     fetchTests();
   }, []);
   if (loading) return <p>Loading...</p>;
-  if (tests.length === 0) return <p>No benchmark data found.</p>;
+  if (localTests.length === 0) return <p>No benchmark data found.</p>;
 
   // --- Обчислюємо статистику ---
-  const totalTests = tests.length;
-  const averageHashrate = tests.reduce((acc, t) => acc + t.avg_hashrate, 0) / totalTests;
-  const averageEfficiency = tests.reduce((acc, t) => acc + t.efficiency, 0) / totalTests;
+  const totalTests = localTests.length;
+  const averageHashrate = localTests.reduce((acc, t) => acc + t.avg_hashrate, 0) / totalTests;
+  const averageEfficiency = localTests.reduce((acc, t) => acc + t.efficiency, 0) / totalTests;
   // Найкращий перформер по hashrate
-  const bestPerformer = tests.reduce((best, t) => t.avg_hashrate > best.avg_hashrate ? t : best, tests[0]);
+  const bestPerformer = localTests.reduce((best, t) => t.avg_hashrate > best.avg_hashrate ? t : best, localTests[0]);
   const stats = [
     {
       title: 'Total Tests',
@@ -121,59 +128,11 @@ export default function StatsCards({ summary }: StatsCardsProps) {
     </div>
   );
 }
+interface RecentTestsProps {
+  tests: BenchmarkResult[];
+}
 
-export function RecentTests() {
-  const [tests, setTests] = useState<Test[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchTests = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('benchmarks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error(error);
-        setLoading(false);
-        return;
-      }
-
-      if (!data) {
-        setTests([]);
-        setLoading(false);
-        return;
-      }
-
-      // Відбираємо останні унікальні тести за device_name + algorithm
-      const seen = new Set<string>();
-      const uniqueTests = data.filter((item) => {
-        const key = `${item.device_name}-${item.algorithm}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-
-      setTests(
-        uniqueTests.map(item => ({
-          id: item.id,
-          algorithm: item.algorithm,
-          device_name: item.device_name,
-          device_type: item.device_type,
-          avg_hashrate: Number(item.avg_hashrate),
-          avg_temp: item.avg_temp ? Number(item.avg_temp) : null,
-          created_at: item.created_at,
-        }))
-      );
-
-      setLoading(false);
-    };
-
-    fetchTests();
-  }, []);
-
-  if (loading) return <p>Loading...</p>;
+export function RecentTests({ tests }: RecentTestsProps) {
   if (tests.length === 0) return <p>No benchmark data found.</p>;
 
   return (
@@ -208,8 +167,8 @@ export function RecentTests() {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">{formatHashrate(test.avg_hashrate)}</p>
-              <p className="text-sm text-gray-500">{new Date(test.created_at).toLocaleDateString()}</p>
+              <p className="text-sm font-medium text-gray-900">{test.avg_hashrate != null ? formatHashrate(test.avg_hashrate) : 'N/A'}</p>
+              <p className="text-sm text-gray-500">{test.created_at ? new Date(test.created_at).toLocaleDateString() : 'N/A'}</p>
             </div>
           </div>
         ))}

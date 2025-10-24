@@ -47,14 +47,14 @@ export const generateMockData = (): BenchmarkResult[] => {
     const miner = miners[Math.floor(Math.random() * miners.length)];
     const pool = pools[Math.floor(Math.random() * pools.length)];
     const os = osVersions[Math.floor(Math.random() * osVersions.length)];
-    
+
     const hashrate = Math.random() * 1000 + 100; // 100-1100 MH/s
     const powerConsumption = Math.random() * 200 + 150; // 150-350W
     const efficiency = calculateEfficiency(hashrate, powerConsumption);
     const temperature = Math.random() * 20 + 60; // 60-80°C
     const uptime = Math.random() * 86400; // 0-24 hours
     const profitability = Math.random() * 10; // $0-10/day
-    
+
     return {
       id: `test_${i + 1}`,
       timestamp: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -82,15 +82,22 @@ export const generateMockData = (): BenchmarkResult[] => {
 
 export const calculateSummary = (results: BenchmarkResult[]): BenchmarkSummary => {
   const totalTests = results.length;
-  const averageHashrate = results.reduce((sum, r) => sum + r.hashrate, 0) / totalTests;
-  const averageEfficiency = results.reduce((sum, r) => sum + r.efficiency, 0) / totalTests;
-  
-  const bestPerformer = results.reduce((best, current) => 
-    current.hashrate > best.hashrate ? current : best
+  const averageHashrate =
+    results.reduce((sum, r) => sum + (r.hashrate ?? 0), 0) / totalTests;
+  const averageEfficiency =
+    results.reduce((sum, r) => sum + (r.efficiency ?? 0), 0) / totalTests;
+
+
+  const bestPerformer = results.reduce((best, current) =>
+    (current.hashrate ?? 0) > (best.hashrate ?? 0) ? current : best
   );
-  
+
+
   const recentTests = results
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .sort((a, b) =>
+      new Date(b.timestamp ?? 0).getTime() - new Date(a.timestamp ?? 0).getTime()
+    )
+
     .slice(0, 10);
 
   return {
@@ -98,9 +105,9 @@ export const calculateSummary = (results: BenchmarkResult[]): BenchmarkSummary =
     averageHashrate,
     averageEfficiency,
     bestPerformer: {
-      algorithm: bestPerformer.algorithm,
-      hashrate: bestPerformer.hashrate,
-      gpuModel: bestPerformer.gpuModel,
+      algorithm: bestPerformer.algorithm ?? 'N/A',
+      hashrate: bestPerformer.hashrate ?? 0,
+      gpuModel: bestPerformer.gpuModel ?? 'Unknown',
     },
     recentTests,
   };
