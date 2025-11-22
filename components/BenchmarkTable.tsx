@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, ChevronUp, ChevronDown, Filter } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { BenchmarkTableProps } from '@/types/benchmark';
+import { formatHashrate } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface BenchmarkResult {
   id: number;
   device_type: string;
   device_name: string;
   avg_temp: number | null;
+  avg_power: number | null;
   avg_hashrate: number;
   max_hashrate: number;
   duration_seconds: number;
@@ -33,7 +36,6 @@ export default function BenchmarkTable({ results }: BenchmarkTableProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 🧠 Функція отримання даних і агрегації середніх по пристрою
   const fetchResults = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -53,7 +55,6 @@ export default function BenchmarkTable({ results }: BenchmarkTableProps) {
       return;
     }
 
-    // 🔢 Групуємо по device_name
     const grouped = data.reduce<Record<string, BenchmarkResult[]>>((acc, item) => {
       const key = item.device_name;
       if (!acc[key]) acc[key] = [];
@@ -61,21 +62,36 @@ export default function BenchmarkTable({ results }: BenchmarkTableProps) {
       return acc;
     }, {} as Record<string, BenchmarkResult[]>);
 
-    // 📊 Обчислюємо середні
     const averaged = Object.entries(grouped).map(([device_name, group]) => {
-      const avg_temp =
-        group.filter(g => g.avg_temp != null).reduce((a, b) => a + Number(b.avg_temp), 0) /
-        (group.filter(g => g.avg_temp != null).length || 1);
-      const avg_hashrate = group.reduce((a, b) => a + Number(b.avg_hashrate), 0) / group.length;
+      const totalDuration = group.reduce((a, b) => a + Number(b.duration_seconds), 0);
+
+      // Weighted average for hashrate
+      const weightedHashrate = group.reduce((a, b) => a + (Number(b.avg_hashrate) * Number(b.duration_seconds)), 0) / totalDuration;
+
+      // Weighted average for temp (filtering out nulls)
+      const tempGroup = group.filter(g => g.avg_temp != null);
+      const totalTempDuration = tempGroup.reduce((a, b) => a + Number(b.duration_seconds), 0);
+      const weightedTemp = tempGroup.length > 0
+        ? tempGroup.reduce((a, b) => a + (Number(b.avg_temp) * Number(b.duration_seconds)), 0) / totalTempDuration
+        : 0;
+
+      // Weighted average for power (filtering out nulls)
+      const powerGroup = group.filter(g => g.avg_power != null);
+      const totalPowerDuration = powerGroup.reduce((a, b) => a + Number(b.duration_seconds), 0);
+      const weightedPower = powerGroup.length > 0
+        ? powerGroup.reduce((a, b) => a + (Number(b.avg_power) * Number(b.duration_seconds)), 0) / totalPowerDuration
+        : 0;
+
       const max_hashrate = Math.max(...group.map(g => Number(g.max_hashrate)));
-      const duration_avg = group.reduce((a, b) => a + Number(b.duration_seconds), 0) / group.length;
+      const duration_avg = totalDuration / group.length;
 
       return {
         id: group[0].id,
         device_type: group[0].device_type,
         device_name,
-        avg_temp: isNaN(avg_temp) ? null : avg_temp,
-        avg_hashrate,
+        avg_temp: tempGroup.length > 0 ? weightedTemp : null,
+        avg_power: powerGroup.length > 0 ? weightedPower : null,
+        avg_hashrate: weightedHashrate,
         max_hashrate,
         duration_seconds: duration_avg,
         algorithm: group[0].algorithm,
@@ -106,7 +122,6 @@ export default function BenchmarkTable({ results }: BenchmarkTableProps) {
     return Array.from(new Set(localResults.map(r => r[field] as string))).sort();
   };
 
-  // 🔍 Фільтрація і пошук
   const filteredResults = localResults
     .filter(r => {
       if (filters.algorithm && r.algorithm !== filters.algorithm) return false;
@@ -138,62 +153,69 @@ export default function BenchmarkTable({ results }: BenchmarkTableProps) {
     });
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="glass-panel rounded-xl overflow-hidden"
+    >
       {/* Header */}
-      <div className="bg-gradient-to-r from-mining-600 to-mining-700 px-6 py-4 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Benchmark Results</h2>
+      <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-900">
+        <h2 className="text-xl font-bold text-white uppercase tracking-wide flex items-center gap-2">
+          <Filter className="w-5 h-5 text-yellow-400" />
+          Benchmark Results
+        </h2>
         <button
           onClick={fetchResults}
-          className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors"
+          className="btn-secondary flex items-center space-x-2 text-sm"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
         </button>
       </div>
 
       {/* Filters */}
-      <div className="p-6 border-b bg-gray-50 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="p-6 border-b border-zinc-900 bg-zinc-950 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 w-4 h-4" />
           <input
             type="text"
             placeholder="Search..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mining-500 focus:border-transparent"
+            className="input-field pl-10"
           />
         </div>
 
         <select
           value={filters.algorithm || ''}
           onChange={e => setFilters({ ...filters, algorithm: e.target.value || undefined })}
-          className="px-4 py-2 border rounded-lg"
+          className="bg-zinc-950 border border-zinc-800 text-white px-4 py-2 focus:outline-none focus:border-yellow-400 hover:border-yellow-400 transition-all uppercase tracking-wide text-sm"
         >
-          <option value="">All Algorithms</option>
+          <option value="" className="bg-zinc-950 text-white">All Algorithms</option>
           {getUniqueValues('algorithm').map(a => (
-            <option key={a} value={a}>{a}</option>
+            <option key={a} value={a} className="bg-zinc-950 text-white">{a}</option>
           ))}
         </select>
 
         <select
           value={filters.device_name || ''}
           onChange={e => setFilters({ ...filters, device_name: e.target.value || undefined })}
-          className="px-4 py-2 border rounded-lg"
+          className="bg-zinc-950 border border-zinc-800 text-white px-4 py-2 focus:outline-none focus:border-yellow-400 hover:border-yellow-400 transition-all uppercase tracking-wide text-sm"
         >
-          <option value="">All Devices</option>
+          <option value="" className="bg-zinc-950 text-white">All Devices</option>
           {getUniqueValues('device_name').map(d => (
-            <option key={d} value={d}>{d}</option>
+            <option key={d} value={d} className="bg-zinc-950 text-white">{d}</option>
           ))}
         </select>
 
         <select
           value={filters.device_type || ''}
           onChange={e => setFilters({ ...filters, device_type: e.target.value || undefined })}
-          className="px-4 py-2 border rounded-lg"
+          className="bg-zinc-950 border border-zinc-800 text-white px-4 py-2 focus:outline-none focus:border-yellow-400 hover:border-yellow-400 transition-all uppercase tracking-wide text-sm"
         >
-          <option value="">All Types</option>
+          <option value="" className="bg-zinc-950 text-white">All Types</option>
           {getUniqueValues('device_type').map(d => (
-            <option key={d} value={d}>{d}</option>
+            <option key={d} value={d} className="bg-zinc-950 text-white">{d}</option>
           ))}
         </select>
       </div>
@@ -201,50 +223,76 @@ export default function BenchmarkTable({ results }: BenchmarkTableProps) {
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-100">
+          <thead className="bg-zinc-950">
             <tr>
               {[
-                'device_name',
-                'device_type',
-                'algorithm',
-                'avg_temp',
-                'avg_hashrate',
-                'max_hashrate',
-                'duration_seconds',
-                'coin_name',
-              ].map(field => (
+                { key: 'device_name', label: 'Device' },
+                { key: 'avg_hashrate', label: 'Avg Hashrate' },
+                { key: 'max_hashrate', label: 'Max Hashrate' },
+                { key: 'avg_power', label: 'Power' },
+                { key: 'avg_temp', label: 'Temp' },
+                { key: 'algorithm', label: 'Algorithm' },
+                { key: 'coin_name', label: 'Coin' },
+                { key: 'duration_seconds', label: 'Duration' },
+                { key: 'device_type', label: 'Type' },
+              ].map(({ key, label }) => (
                 <th
-                  key={field}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                  onClick={() => handleSort(field as keyof BenchmarkResult)}
+                  key={key}
+                  className="px-6 py-4 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-yellow-400 transition-colors"
+                  onClick={() => handleSort(key as keyof BenchmarkResult)}
                 >
-                  {field.replace(/_/g, ' ').toUpperCase()} {sortField === field && (sortDirection === 'asc' ? ' ↑' : ' ↓')}
+                  <div className="flex items-center space-x-1">
+                    <span>{label}</span>
+                    {sortField === key && (
+                      sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                    )}
+                  </div>
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredResults.map(r => (
-              <tr key={r.device_name} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium">{r.device_name}</td>
-                <td className="px-6 py-4">{r.device_type}</td>
-                <td className="px-6 py-4">{r.algorithm}</td>
-                <td className="px-6 py-4">{r.avg_temp != null ? r.avg_temp.toFixed(1) : 'N/A'}</td>
-                <td className="px-6 py-4">{r.avg_hashrate.toFixed(2)}</td>
-                <td className="px-6 py-4">{r.max_hashrate.toFixed(2)}</td>
-                <td className="px-6 py-4">{r.duration_seconds.toFixed(0)}</td>
-                <td className="px-6 py-4">{r.coin_name}</td>
-              </tr>
+          <tbody className="divide-y divide-zinc-900">
+            {filteredResults.map((r, index) => (
+              <motion.tr
+                key={r.device_name}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: index * 0.05 }}
+                className="hover:bg-zinc-900 hover:border-l-2 hover:border-l-yellow-400 transition-colors"
+              >
+                <td className="px-6 py-4 font-medium text-white">{r.device_name}</td>
+                <td className="px-6 py-4 text-yellow-400 font-mono">{formatHashrate(r.avg_hashrate)}</td>
+                <td className="px-6 py-4 text-zinc-400 font-mono">{formatHashrate(r.max_hashrate)}</td>
+                <td className="px-6 py-4 text-yellow-400 font-mono">
+                  {r.avg_power != null && r.avg_power !== 0
+                    ? r.avg_power.toFixed(1) + ' W'
+                    : ''}
+                </td>
+                <td className="px-6 py-4 font-mono">
+                  {r.avg_temp != null && r.avg_temp !== 0 ? (
+                    <span className={`${r.avg_temp > 75 ? 'text-red-400' :
+                      r.avg_temp > 65 ? 'text-orange-400' :
+                        'text-yellow-400'
+                      }`}>
+                      {r.avg_temp.toFixed(1)} °C
+                    </span>
+                  ) : ''}
+                </td>
+                <td className="px-6 py-4 text-white">{r.algorithm}</td>
+                <td className="px-6 py-4 text-white">{r.coin_name}</td>
+                <td className="px-6 py-4 text-zinc-400">{r.duration_seconds.toFixed(0)}s</td>
+                <td className="px-6 py-4 text-zinc-400 text-xs uppercase">{r.device_type}</td>
+              </motion.tr>
             ))}
           </tbody>
         </table>
       </div>
-
       {/* Footer */}
-      <div className="bg-gray-50 px-6 py-3 border-t flex justify-between text-sm text-gray-700">
+      <div className="bg-zinc-950 px-6 py-3 border-t border-zinc-900 flex justify-between text-xs text-zinc-500 uppercase tracking-wide">
         <span>Showing {filteredResults.length} of {localResults.length} devices</span>
         <span>Last updated: {new Date().toLocaleString()}</span>
       </div>
-    </div>
+    </motion.div>
   );
 }
+

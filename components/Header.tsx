@@ -1,96 +1,104 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import Logo from '@/public/img/minebench-logo.png';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { Menu, X, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface HeaderProps {
   onRefresh?: () => void;
-  lastUpdated?: Date;
   loading?: boolean;
 }
 
-export default function Header({ onRefresh, lastUpdated, loading }: HeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
+export default function Header({ onRefresh, loading }: HeaderProps = {}) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const navLinks = [
-    { name: 'Dashboard', href: '/' },
+    { name: 'Home', href: '/' },
+    { name: 'Dashboard', href: '/dashboard' },
     { name: 'Downloads', href: '/downloads' },
+    { name: 'Whitepaper', href: '/whitepaper' },
   ];
 
   return (
-    <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-zinc-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2">
-            <Image src={Logo} alt="Minebench Logo" width={40} height={40} />
-            <h1 className="text-xl font-bold text-gray-900">Minebench</h1>
-          </div>
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="relative w-8 h-8">
+              <Image src="/img/android-chrome-512x512.png" alt="Minebench" fill className="object-contain" />
+            </div>
+            <span className="text-xl font-bold tracking-tighter text-white group-hover:text-yellow-400 transition-colors uppercase">
+              MINEBENCH
+            </span>
           </Link>
 
-          {/* Desktop menu */}
-          <nav className="hidden md:flex items-center space-x-6">
-            {navLinks.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-gray-700 hover:text-mining-600 transition-colors"
-              >
-                {link.name}
-              </Link>
-            ))}
-
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-1">
+            {navLinks.map(link => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-4 py-2 text-sm font-bold uppercase tracking-wide ${isActive ? 'text-yellow-400 border-b-2 border-yellow-400' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
             {onRefresh && (
               <button
                 onClick={onRefresh}
+                className="ml-4 p-2 border border-zinc-800 hover:border-yellow-400 text-yellow-400 hover:bg-zinc-900 transition-all"
                 disabled={loading}
-                className="flex items-center space-x-2 bg-mining-600 hover:bg-mining-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
+                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
               </button>
             )}
           </nav>
 
-          {/* Mobile menu button */}
+          {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 text-gray-700 hover:text-mining-600"
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-white hover:text-yellow-400 transition-colors"
           >
-            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
-
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div className="md:hidden flex flex-col space-y-2 pb-4">
-            {navLinks.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className="block text-gray-700 hover:text-mining-600 px-2 py-1"
-              >
-                {link.name}
-              </Link>
-            ))}
-            {onRefresh && (
-              <button
-                onClick={onRefresh}
-                disabled={loading}
-                className="flex items-center space-x-2 bg-mining-600 hover:bg-mining-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
-              </button>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden border-t border-zinc-900 bg-black"
+          >
+            <div className="px-4 py-4 space-y-2">
+              {navLinks.map(link => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`block px-4 py-3 text-sm font-bold uppercase tracking-wide ${isActive ? 'text-yellow-400 border-l-2 border-yellow-400 bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

@@ -12,8 +12,22 @@ export const formatPower = (power: number): string => {
   return `${power.toFixed(0)}W`;
 };
 
+// export const formatEfficiency = (efficiency: number): string => {
+//   return `${efficiency.toFixed(2)} H/W`;
+// };
 export const formatEfficiency = (efficiency: number): string => {
-  return `${efficiency.toFixed(2)} H/W`;
+  if (efficiency === null || isNaN(efficiency)) return 'N/A';
+
+  const units = ['H/W', 'kH/W', 'MH/W', 'GH/W', 'TH/W'];
+  let value = efficiency;
+  let unitIndex = 0;
+
+  while (value >= 1000 && unitIndex < units.length - 1) {
+    value /= 1000;
+    unitIndex++;
+  }
+
+  return `${value.toFixed(2)} ${units[unitIndex]}`;
 };
 
 export const formatTemperature = (temp: number): string => {
