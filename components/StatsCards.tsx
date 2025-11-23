@@ -1,105 +1,37 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { BenchmarkSummary, Test, BenchmarkResult } from '@/types/benchmark';
+
+import { BenchmarkSummary, BenchmarkResult } from '@/types/benchmark';
 import { formatHashrate, formatEfficiency } from '@/lib/utils';
-import { TrendingUp, Cpu, Zap, Award, Clock, DollarSign } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { TrendingUp, Cpu, Zap, Award, Clock } from 'lucide-react';
 
 interface StatsCardsProps {
   summary: BenchmarkSummary;
 }
-interface BenchmarkTest {
-  id: number;
-  algorithm: string;
-  device_name: string;
-  device_type: string;
-  avg_hashrate: number;
-  avg_power: number | null;
-  efficiency: number;
-  created_at: string;
-  gpu_model: string;
-}
 
 export default function StatsCards({ summary }: StatsCardsProps) {
-  const [localTests, setLocalTests] = useState<BenchmarkTest[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchTests = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('benchmarks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error(error);
-        setLoading(false);
-        return;
-      }
-      const latestMap = new Map<string, typeof data[0]>();
-      data.forEach(item => {
-        if (!latestMap.has(item.device_uid) || new Date(item.created_at) > new Date(latestMap.get(item.device_uid)!.created_at)) {
-          latestMap.set(item.device_uid, item);
-        }
-      });
-      const uniqueData = Array.from(latestMap.values());
-      setLocalTests(uniqueData.map(item => ({
-        id: item.id,
-        algorithm: item.algorithm,
-        device_name: item.device_name,
-        device_type: item.device_type,
-        avg_hashrate: Number(item.avg_hashrate),
-        avg_power: item.avg_power ? Number(item.avg_power) : null,
-        efficiency: item.avg_power && Number(item.avg_power) > 0
-          ? Number(item.avg_hashrate) / Number(item.avg_power)
-          : 0,
-        created_at: item.created_at,
-        gpu_model: item.device_name
-      })));
-      setLoading(false);
-    };
-
-    fetchTests();
-  }, []);
-
-  if (loading) return <div className="animate-pulse h-32 bg-zinc-900 border border-zinc-800 mb-8"></div>;
-  if (localTests.length === 0) return <p className="text-zinc-400">No benchmark data found.</p>;
-
-  const totalTests = localTests.length;
-  const averageHashrate = localTests.reduce((acc, t) => acc + t.avg_hashrate, 0) / totalTests;
-
-  // Calculate efficiency only for tests with power data
-  const testsWithPower = localTests.filter(t => t.efficiency && t.efficiency > 0);
-  const averageEfficiency = testsWithPower.length > 0
-    ? testsWithPower.reduce((acc, t) => acc + t.efficiency, 0) / testsWithPower.length
-    : 0;
-
-  const bestPerformer = localTests.reduce((best, t) => t.avg_hashrate > best.avg_hashrate ? t : best, localTests[0]);
-
   const stats = [
     {
       title: 'Total Tests',
-      value: totalTests.toString(),
+      value: summary.totalTests.toString(),
       icon: Cpu,
       textColor: 'text-yellow-400',
     },
     {
       title: 'Average Hashrate',
-      value: formatHashrate(averageHashrate),
+      value: formatHashrate(summary.averageHashrate),
       icon: TrendingUp,
       textColor: 'text-yellow-400',
     },
     {
       title: 'Average Efficiency',
-      value: formatEfficiency(averageEfficiency),
+      value: formatEfficiency(summary.averageEfficiency),
       icon: Zap,
       textColor: 'text-yellow-400',
     },
     {
       title: 'Best Performer',
-      value: bestPerformer.algorithm,
-      subtitle: bestPerformer.gpu_model,
+      value: summary.bestPerformer.algorithm,
+      subtitle: summary.bestPerformer.gpuModel,
       icon: Award,
       textColor: 'text-yellow-400',
     },

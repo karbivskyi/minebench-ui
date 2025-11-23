@@ -33,6 +33,8 @@ export default function Dashboard() {
         }
       });
       const uniqueData = Array.from(latestMap.values());
+
+      // Map data for results display
       setResults(
         uniqueData.map(item => ({
           id: item.id,
@@ -45,8 +47,24 @@ export default function Dashboard() {
           gpu_model: item.gpu_model || item.device_name,
         }))
       );
+
+      // Map data for summary calculation with proper field names
+      const summaryData = uniqueData.map(item => ({
+        id: item.id,
+        algorithm: item.algorithm,
+        device_name: item.device_name,
+        device_type: item.device_type,
+        hashrate: Number(item.avg_hashrate),
+        powerConsumption: item.avg_power ? Number(item.avg_power) : undefined,
+        efficiency: Number(item.efficiency),
+        created_at: item.created_at,
+        timestamp: item.created_at,
+        gpu_model: item.gpu_model || item.device_name,
+        gpuModel: item.gpu_model || item.device_name,
+      }));
+
       setTests(uniqueData);
-      setSummary(calculateSummary(uniqueData));
+      setSummary(calculateSummary(summaryData));
     } catch (e) {
       console.error(e);
     } finally {
@@ -79,21 +97,35 @@ export default function Dashboard() {
             <BenchmarkTable results={results} onRefresh={handleRefresh} />
           </div>
           <div className="space-y-6">
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-zinc-500">Data Points:</span>
-            <span className="text-sm font-medium text-white">{results.length}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-zinc-500">Status:</span>
-            <span className="text-sm font-medium text-green-400">Active</span>
+            <RecentTests tests={tests} />
+            <div className="bg-black border border-zinc-800 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">System Info</h3>
+                <Settings className="w-5 h-5 text-zinc-500" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-zinc-500">Version:</span>
+                  <span className="text-sm font-medium text-white">0.1.2</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-zinc-500">Environment:</span>
+                  <span className="text-sm font-medium text-white">Production</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-zinc-500">Data Points:</span>
+                  <span className="text-sm font-medium text-white">{results.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-zinc-500">Status:</span>
+                  <span className="text-sm font-medium text-yellow-400">Active</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </main>
+      <Footer />
     </div>
-          </div >
-        </div >
-      </main >
-    <Footer />
-    </div >
   );
 }

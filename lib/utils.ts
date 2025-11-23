@@ -98,8 +98,21 @@ export const calculateSummary = (results: BenchmarkResult[]): BenchmarkSummary =
   const totalTests = results.length;
   const averageHashrate =
     results.reduce((sum, r) => sum + (r.hashrate ?? 0), 0) / totalTests;
-  const averageEfficiency =
-    results.reduce((sum, r) => sum + (r.efficiency ?? 0), 0) / totalTests;
+
+  // Calculate efficiency only for results with valid power consumption and hashrate
+  const resultsWithPower = results.filter(r =>
+    r.powerConsumption != null &&
+    r.powerConsumption > 0 &&
+    r.hashrate != null &&
+    r.hashrate > 0
+  );
+
+  const averageEfficiency = resultsWithPower.length > 0
+    ? resultsWithPower.reduce((sum, r) => {
+      const efficiency = (r.hashrate ?? 0) / (r.powerConsumption ?? 1);
+      return sum + efficiency;
+    }, 0) / resultsWithPower.length
+    : 0;
 
 
   const bestPerformer = results.reduce((best, current) =>

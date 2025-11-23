@@ -1,7 +1,5 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import discord_icon from '@/public/img/discord-icon.svg';
-import x_icon from '@/public/img/x-icon.svg';
 import { Github } from 'lucide-react';
 
 export default function Footer() {
@@ -33,7 +31,7 @@ export default function Footer() {
           {/* Links */}
           <div className="flex flex-col items-center">
             <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4">Navigate</h3>
-            <div className="space-y-2">
+            <div className="space-y-2 mb-2">
               {footerLinks.map(link => (
                 <Link key={link.href} href={link.href} className="block text-sm text-zinc-500 hover:text-yellow-400 transition-colors uppercase tracking-wide">
                   {link.name}
@@ -49,11 +47,15 @@ export default function Footer() {
               <a href="https://github.com/karbivskyi/minebench-ui" target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-zinc-800 hover:border-yellow-400 flex items-center justify-center transition-all group">
                 <Github className="w-5 h-5 text-zinc-500 group-hover:text-yellow-400 transition-colors" />
               </a>
-              <a href="https://discord.gg/a3gNvZUW" target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-zinc-800 hover:border-yellow-400 flex items-center justify-center transition-all group">
-                <Image src={discord_icon} alt="Discord" fill className="object-contain opacity-50 group-hover:opacity-100 transition-opacity" />
+              <a href="https://discord.gg/akWk9ZrN" target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-zinc-800 hover:border-yellow-400 flex items-center justify-center transition-all group">
+                <div className="relative w-5 h-5">
+                  <Image src="/img/discord-icon.svg" alt="Discord" fill className="object-contain opacity-50 group-hover:opacity-100 transition-opacity" />
+                </div>
               </a>
               <a href="https://x.com/MineBenchdapp" target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-zinc-800 hover:border-yellow-400 flex items-center justify-center transition-all group">
-                <Image src={x_icon} alt="X (Twitter)" fill className="object-contain opacity-50 group-hover:opacity-100 transition-opacity" />
+                <div className="relative w-5 h-5">
+                  <Image src="/img/x-icon.svg" alt="X (Twitter)" fill className="object-contain opacity-50 group-hover:opacity-100 transition-opacity" />
+                </div>
               </a>
             </div>
           </div>

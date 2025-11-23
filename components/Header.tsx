@@ -30,7 +30,7 @@ export default function Header({ onRefresh, loading }: HeaderProps = {}) {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
             <div className="relative w-8 h-8">
-              <Image src="/img/android-chrome-512x512.png" alt="Minebench" fill className="object-contain" />
+              <Image src="/img/minebench-logo.png" alt="Minebench" fill className="object-contain" />
             </div>
             <span className="text-xl font-bold tracking-tighter text-white group-hover:text-yellow-400 transition-colors uppercase">
               MINEBENCH
