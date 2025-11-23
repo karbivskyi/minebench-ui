@@ -29,7 +29,7 @@ export default function Footer() {
           </div>
 
           {/* Links */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-start md:items-center">
             <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4">Navigate</h3>
             <div className="space-y-2 mb-2">
               {footerLinks.map(link => (
@@ -41,7 +41,7 @@ export default function Footer() {
           </div>
 
           {/* Social */}
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-start md:items-end">
             <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4">Community</h3>
             <div className="flex gap-4">
               <a href="https://github.com/karbivskyi/minebench-ui" target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-zinc-800 hover:border-yellow-400 flex items-center justify-center transition-all group">
