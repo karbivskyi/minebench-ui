@@ -36,11 +36,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Minebench - Mining Benchmark Dashboard',
     description: 'The decentralized standard for hardware benchmarking and mining efficiency on the Solana blockchain.',
-    url: 'https://minebench.co',
+    url: 'https://minebench.cloud',
     siteName: 'Minebench',
     images: [
       {
-        url: 'https://minebench.co/og-image.png',
+        url: 'https://minebench.cloud/og-image.png',
         width: 1200,
         height: 630,
       },
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Minebench - Mining Benchmark Dashboard',
     description: 'The decentralized standard for hardware benchmarking and mining efficiency on the Solana blockchain.',
-    images: ['https://minebench.co/og-image.png'],
+    images: ['https://minebench.cloud/og-image.png'],
     creator: '@MineBenchdapp',
   },
   robots: {
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: 'https://minebench.co',
+    canonical: 'https://minebench.cloud',
   },
   applicationName: 'Minebench',
   generator: 'Next.js',
@@ -96,7 +96,7 @@ export default function RootLayout({
     applicationCategory: 'UtilitiesApplication',
     operatingSystem: 'Windows, Linux',
     description: 'Decentralized blockchain-based benchmarking platform for cryptocurrency mining hardware. Provides transparent, verifiable performance metrics for GPU, CPU, and ASIC mining equipment on the Solana blockchain.',
-    url: 'https://minebench.co',
+    url: 'https://minebench.cloud',
     offers: {
       '@type': 'Offer',
       price: '0',
@@ -112,7 +112,7 @@ export default function RootLayout({
       'Hardware performance leaderboards',
       'Transparent and immutable benchmark data'
     ],
-    screenshot: 'https://minebench.co/og-image.png',
+    screenshot: 'https://minebench.cloud/og-image.png',
     author: {
       '@type': 'Organization',
       name: 'Minebench Team',

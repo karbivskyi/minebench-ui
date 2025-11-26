@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
             allow: '/',
             disallow: '/private/',
         },
-        sitemap: 'https://minebench.co/sitemap.xml',
+        sitemap: 'https://minebench.cloud/sitemap.xml',
     };
 }
