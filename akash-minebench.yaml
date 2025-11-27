@@ -2,7 +2,7 @@
 version: "2.0"
 services:
   service-1:
-    image: karbivskyi/minebench-ui:v0.1.2.7
+    image: karbivskyi/minebench-ui:v0.1.2.9
     expose:
       - port: 3000
         as: 80
