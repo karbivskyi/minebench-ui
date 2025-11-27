@@ -1,8 +1,7 @@
-'use client';
-
 import { BenchmarkSummary, BenchmarkResult } from '@/types/benchmark';
 import { formatHashrate, formatEfficiency } from '@/lib/utils';
 import { TrendingUp, Cpu, Zap, Award, Clock } from 'lucide-react';
+import Image from 'next/image';
 
 interface StatsCardsProps {
   summary: BenchmarkSummary;
@@ -77,28 +76,41 @@ export function RecentTests({ tests }: RecentTestsProps) {
       </div>
 
       <div className="space-y-4">
-        {tests.map(test => (
-          <div key={test.id} className="flex items-center justify-between p-4 border border-zinc-900 hover:border-yellow-400 transition-all">
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 border border-yellow-400 flex items-center justify-center">
-                  <Cpu className="w-5 h-5 text-yellow-400" />
+        {tests.map(test => {
+          // Use device_type from database to determine icon
+          const isGPU = test.device_type === 'GPU';
+          const iconSrc = isGPU ? '/img/gpu-icon.svg' : '/img/cpu-icon.svg';
+
+          return (
+            <div key={test.id} className="flex items-center justify-between p-4 border border-zinc-900 hover:border-yellow-400 transition-all">
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 border border-yellow-400 flex items-center justify-center p-2">
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={iconSrc}
+                        alt={isGPU ? 'GPU' : 'CPU'}
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{test.device_name}</p>
+                  <p className="text-sm text-zinc-500">{test.algorithm}</p>
+                  {test.avg_temp !== undefined && test.avg_temp !== null && test.avg_temp > 0 && (
+                    <p className="text-sm text-zinc-400">Temp: {test.avg_temp.toFixed(1)}°C</p>
+                  )}
                 </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-white">{test.algorithm}</p>
-                <p className="text-sm text-zinc-500">{test.device_name}</p>
-                {test.avg_temp !== undefined && test.avg_temp !== null && test.avg_temp > 0 && (
-                  <p className="text-sm text-zinc-400">Temp: {test.avg_temp.toFixed(1)}°C</p>
-                )}
+              <div className="text-right">
+                <p className="text-sm font-medium text-white">{test.avg_hashrate != null ? formatHashrate(test.avg_hashrate) : 'N/A'}</p>
+                <p className="text-sm text-zinc-500">{test.created_at ? new Date(test.created_at).toLocaleDateString() : 'N/A'}</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-medium text-white">{test.avg_hashrate != null ? formatHashrate(test.avg_hashrate) : 'N/A'}</p>
-              <p className="text-sm text-zinc-500">{test.created_at ? new Date(test.created_at).toLocaleDateString() : 'N/A'}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

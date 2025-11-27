@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   ].join(', '),
   authors: [{ name: 'Minebench Team' }],
   openGraph: {
-    title: 'Minebench - Mining Benchmark Dashboard',
+    title: 'Minebench - Decentralized Mining Benchmark',
     description: 'The decentralized standard for hardware benchmarking and mining efficiency on the Solana blockchain.',
     url: 'https://minebench.cloud',
     siteName: 'Minebench',
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Minebench - Mining Benchmark Dashboard',
+    title: 'Minebench - Decentralized Mining Benchmark',
     description: 'The decentralized standard for hardware benchmarking and mining efficiency on the Solana blockchain.',
     images: ['https://minebench.cloud/og-image.png'],
     creator: '@MineBenchdapp',

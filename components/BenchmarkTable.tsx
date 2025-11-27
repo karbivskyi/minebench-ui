@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { Search, RefreshCw, ChevronUp, ChevronDown, Filter } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
