@@ -85,7 +85,7 @@ export default function LandingPageClient() {
                     >
                         <div className="inline-block border border-yellow-400 px-4 py-2 mb-8">
                             <span className="text-yellow-400 font-mono-system text-sm uppercase tracking-widest">
-                                v0.1.2
+                                v0.1.3
                             </span>
                         </div>
 

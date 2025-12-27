@@ -106,7 +106,7 @@ export default function DashboardClient() {
                             <div className="space-y-2">
                                 <div className="flex justify-between">
                                     <span className="text-sm text-zinc-500">Version:</span>
-                                    <span className="text-sm font-medium text-white">0.1.2</span>
+                                    <span className="text-sm font-medium text-white">0.1.3</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm text-zinc-500">Environment:</span>
