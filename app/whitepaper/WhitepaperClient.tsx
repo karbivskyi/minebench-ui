@@ -55,7 +55,7 @@ export default function WhitepaperClient() {
                                     Minebench is a revolutionary web-based benchmarking platform designed to bridge the gap between hardware performance testing and eco-friendly crypto mining. Built on the high-performance <strong className="text-white">Solana blockchain</strong>, Minebench provides a transparent, immutable, and verifiable way to test and rank mining hardware.
                                 </p>
                                 <p>
-                                    By leveraging Solana's low latency and high throughput, we ensure that every benchmark result is cryptographically signed and recorded, creating a trustless standard for the mining industry.
+                                    By leveraging Solana&apos;s low latency and high throughput, we ensure that every benchmark result is cryptographically signed and recorded, creating a trustless standard for the mining industry.
                                 </p>
                             </div>
                         </motion.section>
@@ -184,7 +184,7 @@ export default function WhitepaperClient() {
                                 <div>
                                     <h3 className="text-white font-bold mb-3 uppercase tracking-wide">Blockchain Layer</h3>
                                     <p className="text-sm">
-                                        Minebench leverages Solana's high-throughput blockchain to record benchmark results with cryptographic signatures. Each benchmark submission includes:
+                                        Minebench leverages Solana&apos;s high-throughput blockchain to record benchmark results with cryptographic signatures. Each benchmark submission includes:
                                     </p>
                                     <ul className="mt-3 space-y-2 text-sm">
                                         <li className="flex items-start gap-2">

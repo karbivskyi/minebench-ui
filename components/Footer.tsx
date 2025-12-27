@@ -57,12 +57,20 @@ export default function Footer() {
                   <Image src="/img/x-icon.svg" alt="X (Twitter)" fill className="object-contain opacity-50 group-hover:opacity-100 transition-opacity" />
                 </div>
               </a>
+              <a href="https://pump.fun/coin/67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev" target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-zinc-800 hover:border-yellow-400 flex items-center justify-center transition-all group">
+                <div className="relative w-5 h-5">
+                  <Image src="/img/pumpfun_logo.png" alt="pump.fun" fill className="object-contain opacity-50 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </a>
             </div>
           </div>
         </div>
         <div className="pt-8 border-t border-zinc-900 text-center">
           <p className="text-xs text-zinc-600 font-mono-system uppercase tracking-widest">
             © {year} MINEBENCH. ALL RIGHTS RESERVED.
+          </p>
+          <p className="text-xs text-zinc-600 font-mono-system uppercase tracking-widest mt-2">
+            Contract Address - 67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev (Solana Blockchain)
           </p>
         </div>
       </div>

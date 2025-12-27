@@ -147,7 +147,7 @@ export default function LandingPageClient() {
                             <p>
                                 Minebench provides real-time performance metrics for mining hardware including hashrate,
                                 power consumption, and efficiency across multiple algorithms like Zephyr and Ravencoin.
-                                Whether you're a cryptocurrency miner looking to optimize your hardware, a hardware manufacturer wanting to showcase
+                                Whether you&apos;re a cryptocurrency miner looking to optimize your hardware, a hardware manufacturer wanting to showcase
                                 performance, or a researcher analyzing mining efficiency trends, Minebench provides reliable and comprehensive
                                 benchmarking data with fair compensation for contributors.
                             </p>
